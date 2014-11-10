@@ -29,7 +29,7 @@
 
                         // Update chart layout (for example if container is resized)
                         update: function() {
-                            scope.chart.update();
+                            scope.api.updateDataOnly();
                         },
 
                         // Update chart with new options
@@ -139,11 +139,14 @@
                         updateWithData: function (data){
                             if (data) {
                                 scope.options.chart['transitionDuration'] = +scope.options.chart['transitionDuration'] || 250;
-                                // remove whole svg element with old data
-                                d3.select(element[0]).select('svg').remove();
+
+                                // use existing element if available, so it's possible to add <defs> before running nvd3
+                                if (!d3.select(element[0]).select('svg')[0][0]) {
+                                    d3.select(element[0]).append('svg');
+                                }
 
                                 // Select the current element to add <svg> element and to render the chart in
-                                d3.select(element[0]).append('svg')
+                                d3.select(element[0]).select('svg')
                                     .attr('height', scope.options.chart.height)
                                     .attr('width', scope.options.chart.width)
                                     .datum(data)
@@ -157,12 +160,21 @@
                             }
                         },
 
+                        // Update chart with new data without removing it
+                        updateDataOnly: function () {
+                            scope.options.chart['transitionDuration'] = +scope.options.chart['transitionDuration'] || 250;
+                            d3.select(element[0]).select('svg')
+                                .datum(scope.data)
+                                .transition().duration(scope.options.chart['transitionDuration'])
+                                .call(scope.chart);
+                        },
+
                         // Fully clear directive element
                         clearElement: function (){
                             element.find('.title').remove();
                             element.find('.subtitle').remove();
                             element.find('.caption').remove();
-                            element.empty();
+                            // element.empty();
                             scope.chart = null;
                         },
 
@@ -317,7 +329,7 @@
                     scope.$watch('data', function(newData, oldData){
                         if (newData !== oldData){
                             if (!scope._config.disabled && scope._config.autorefresh) {
-                                scope._config.refreshDataOnly ? scope.chart.update() : scope.api.refresh(); // if wanted to refresh data only, use chart.update method, otherwise use full refresh.
+                                scope._config.refreshDataOnly ? scope.api.update() : scope.api.refresh(); // if wanted to refresh data only, use chart.update method, otherwise use full refresh.
                             }
                         }
                     }, true);
